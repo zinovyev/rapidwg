@@ -6,7 +6,7 @@
     - wireguard
   vars:
     server_ip_address: "{{ ansible_host }}"
-    default_interface: "{{ ansible_facts.interfaces | difference(['lo', 'wg0']) | first }}"
+    default_interface: "eth0" # "{{ ansible_facts.interfaces | difference(['lo', 'wg0']) | first }}"
     wg_interface: wg0
   tasks:
     - debug: msg="{{ server_ip_address }}"

@@ -18,6 +18,7 @@ These instructions imply that you already have a VPS instance accessible by a ro
     ```yaml
     ansible_connection: ssh
     ansible_user: wgadmin
+    ansible_control_user: wgadmin
     ansible_private_key_file: ~/.ssh/id_rsa
     ansible_public_key_file: ~/.ssh/id_rsa.pub
     ```
