@@ -1,0 +1,16 @@
+# Host
+[Interface]
+Address = {{ wireguard_server.ip_address }}/24,{{ wireguard_server.ip6_address }}/64
+SaveConfig = false
+ListenPort = {{ wireguard_server.port }}
+PrivateKey = {{ wireguard_server.private_key }}
+PostUp = /etc/wireguard/post_up.sh
+PostDown = /etc/wireguard/post_down.sh
+
+{% for client in wireguard_clients %}
+# Client: {{ client.name }}
+[Peer]
+PublicKey = {{ client.public_key }}
+AllowedIPs = {{ client.ip_address }}/32,{{ client.ip6_address }}/128
+
+{% endfor %}

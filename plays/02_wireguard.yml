@@ -1,0 +1,102 @@
+---
+
+- name: Install wireguard on the hosts
+  become: true
+  hosts:
+    - wireguard
+  vars:
+    server_ip_address: "{{ ansible_host }}"
+    default_interface: "{{ ansible_facts.interfaces | difference(['lo', 'wg0']) | first }}"
+    wg_interface: wg0
+  tasks:
+    - debug: msg="{{ server_ip_address }}"
+    - debug: msg="{{ default_interface }}"
+    - name: Install required packages
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: latest
+      loop:
+        - wireguard-tools
+        - iptables
+        - qrencode
+
+    - name: Enable IPv4/IPv6 forwarding
+      ansible.posix.sysctl:
+        name: "{{ item }}"
+        value: '1'
+        sysctl_set: true
+        state: present
+        reload: true
+      loop:
+        - net.ipv4.ip_forward
+        - net.ipv6.conf.all.forwarding
+
+    - name: Make sure all required directories exist
+      ansible.builtin.file:
+        path: /etc/wireguard/clients
+        state: directory
+        recurse: yes
+
+    - name: Make sure the wg0.conf exists
+      ansible.builtin.template:
+        src: ../templates/wireguard/wg0.conf.j2
+        dest: /etc/wireguard/wg0.conf
+        owner: root
+        group: wheel
+        mode: '0644'
+      notify:
+        - Restart wireguard
+
+    - name: Make sure the post_up.sh exists
+      ansible.builtin.template:
+        src: ../templates/wireguard/post_up.sh.j2
+        dest: /etc/wireguard/post_up.sh
+        owner: root
+        group: wheel
+        mode: '0744'
+      notify:
+        - Restart wireguard
+
+    - name: Make sure the post_down.sh exists
+      ansible.builtin.template:
+        src: ../templates/wireguard/post_down.sh.j2
+        dest: /etc/wireguard/post_down.sh
+        owner: root
+        group: wheel
+        mode: '0744'
+      notify:
+        - Restart wireguard
+
+    - name: Generate client configurations
+      template:
+        src: ../templates/wireguard/client.conf.j2
+        dest: /etc/wireguard/clients/client{{ client_id }}.conf
+      loop: "{{ wireguard_clients }}"
+      loop_control:
+        index_var: client_id
+      notify:
+        - Restart wireguard
+
+    - name: Generate QR codes
+      shell: cat /etc/wireguard/clients/client{{ client_id }}.conf | qrencode -t ansiutf8
+      loop: "{{ wireguard_clients }}"
+      loop_control:
+        index_var: client_id
+      register: generated_codes
+
+    - debug:
+        msg:
+          - "{{ wireguard_clients[client_id].name }}"
+          - "{{ item.stdout_lines }}"
+        verbosity: 0
+      loop: "{{ generated_codes.results }}"
+      loop_control:
+        index_var: client_id
+        label: ">"
+  handlers:
+    - name: Restart wireguard
+      ansible.builtin.systemd_service:
+        state: restarted
+        daemon_reload: true
+        name: wg-quick@wg0.service
+

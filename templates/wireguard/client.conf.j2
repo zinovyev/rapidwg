@@ -1,0 +1,10 @@
+[Interface]
+PrivateKey = {{ item.private_key }}
+Address = {{ item.ip_address }}/32, {{ item.ip6_address }}/128
+DNS = 1.1.1.1,8.8.8.8
+ 
+[Peer]
+PublicKey = {{ wireguard_server.public_key }}
+AllowedIPs = 0.0.0.0/0, ::/0
+Endpoint = {{ server_ip_address }}:{{ wireguard_server.port }}
+PersistentKeepalive = 15

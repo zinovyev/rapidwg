@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# POST UP:
+# Add additional NAT routing rules
+ 
+# IPv4 rules
+/sbin/iptables -t nat -I POSTROUTING 1 -s {{ wireguard_network.ip_address }}/24 -o {{ default_interface }} -j MASQUERADE
+/sbin/iptables -I INPUT 1 -i {{ wg_interface }} -j ACCEPT
+/sbin/iptables -I FORWARD 1 -i {{ default_interface }} -o {{ wg_interface }} -j ACCEPT
+/sbin/iptables -I FORWARD 1 -i {{ wg_interface }} -o {{ default_interface }} -j ACCEPT
+/sbin/iptables -I INPUT 1 -i {{ default_interface }} -p udp --dport {{ wireguard_server.port }} -j ACCEPT
+ 
+# IPv6 rules
+/sbin/ip6tables -t nat -I POSTROUTING 1 -s {{ wireguard_network.ip6_address }}/64 -o {{ default_interface }} -j MASQUERADE
+/sbin/ip6tables -I INPUT 1 -i {{ wg_interface }} -j ACCEPT
+/sbin/ip6tables -I FORWARD 1 -i {{ default_interface }} -o {{ wg_interface }} -j ACCEPT
+/sbin/ip6tables -I FORWARD 1 -i {{ wg_interface }} -o {{ default_interface }} -j ACCEPT
+/sbin/ip6tables -I INPUT 1 -i {{ default_interface }} -p udp --dport {{ wireguard_server.port }} -j ACCEPT

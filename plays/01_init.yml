@@ -1,0 +1,33 @@
+---
+
+- name: Ping all servers from inventory
+  hosts: all
+  become: true
+  tasks:
+    - name: Make sure the swap file exists
+      stat: path=/swapfile
+      register: swapfile_stat
+
+    - name: Create and activate the swapfile
+      when: not swapfile_stat.stat.exists
+      block:
+        - name: Create new swapfile
+          command: fallocate -l {{ ansible_memtotal_mb|int * 2 }}M /swapfile
+        - name: Change permission on the swap file
+          file:
+            path: /swapfile
+            mode: 600
+        - name: Create a swap area on the swap file
+          shell: mkswap /swapfile
+        - name: Enabling the swapfile temporary
+          shell: swapon /swapfile
+        - name: Enabling the swapfile permanently
+          shell: echo "\n/swapfile none swap sw 0 0\n" > /etc/fstab
+
+    - name: Install some basic packages
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: latest
+      loop:
+        - vim-minimal
+        - epel-release
